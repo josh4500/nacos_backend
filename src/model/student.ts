@@ -13,13 +13,14 @@ export interface IStudent extends mongoose.Document {
     matric_number: string;
     department: string;
     year: string;
-    is_alumni: string;
+    is_alumni: boolean;
     image_url?: string;
     safe_phrase?: string;
     safe_answer?: string;
     createdAt?: Date;
     updatedAt?: Date;
 }
+
 
 const StudentSchema = new mongoose.Schema<IStudent>(
     {
@@ -38,15 +39,14 @@ const StudentSchema = new mongoose.Schema<IStudent>(
         email: {
             type: String,
             required: true,
-            index: { unique: true },
             unique: true,
             trim: true,
             lowercase: true,
+            index: true,
         },
         phone: {
             type: String,
             required: false,
-            index: { unique: true },
             trim: true,
             lowercase: true,
         },
@@ -59,6 +59,9 @@ const StudentSchema = new mongoose.Schema<IStudent>(
             type: String,
             required: true,
             trim: true,
+            unique: true,
+            uppercase: true,
+            index: true,
         },
         department: {
             type: String,
@@ -75,6 +78,14 @@ const StudentSchema = new mongoose.Schema<IStudent>(
             default: false,
         },
         image_url: {
+            type: String,
+            required: false,
+        },
+        safe_phrase: {
+            type: String,
+            required: false,
+        },
+        safe_answer: {
             type: String,
             required: false,
         },

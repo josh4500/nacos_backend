@@ -1,6 +1,8 @@
 import jwt from 'jsonwebtoken';
 import Student, { IStudent } from '../model/student';
 import { Request, Response, NextFunction } from 'express';
+
+const secretKey: string = 'computersciencestudent(2017)federaluniversitylokoja';
 export async function studentAvailable(req: Request, res: Response, next: NextFunction) {
     let student: IStudent | null;
     try {
@@ -24,7 +26,7 @@ export function authenticate(req: Request, res: Response, next: any) {
     const token = (authHeader as string).split(' ')[1];
 
     if (token == null) return res.status(401).json({ "success": false, "message": "Unauthorized access" });
-    jwt.verify(token, process.env.TOKEN_SECRET as string, {}, async (err: any, studentData: any) => {
+    jwt.verify(token, secretKey as string, {}, async (err: any, studentData: any) => {
 
         if (err) return res.status(403).json({ "success": false, "error": "Unauthorized access" });
         const student = await Student.findOne({ _id: studentData._id });

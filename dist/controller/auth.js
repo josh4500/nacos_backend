@@ -29,7 +29,7 @@ const bcrypt_1 = __importDefault(require("bcrypt"));
 const student_1 = __importDefault(require("../model/student"));
 const EmailValidator = require('email-deep-validator');
 const emailValidator = new EmailValidator();
-const secretKey = process.env.TOKEN_SECRET;
+const secretKey = 'computersciencestudent(2017)federaluniversitylokoja';
 const saltRounds = parseInt(process.env.SALT_ROUNDS);
 const signUp = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     const student = req.body;
@@ -72,7 +72,7 @@ const signUp = (req, res, next) => __awaiter(void 0, void 0, void 0, function* (
             student.password = hashedPassword;
             const newStudent = new student_1.default(student);
             const savedStudent = yield newStudent.save();
-            const _a = savedStudent.toObject(), { password } = _a, studentData = __rest(_a, ["password"]);
+            const _a = savedStudent.toObject(), { password, safe_answer } = _a, studentData = __rest(_a, ["password", "safe_answer"]);
             res.status(201).json({ "success": true, "data": studentData, "error": null });
         }
         catch (err) {
@@ -87,21 +87,20 @@ const signIn = (req, res, next) => __awaiter(void 0, void 0, void 0, function* (
         if (emailOrMatric && password) {
             const regStudent = yield student_1.default.findOne({ $or: [{ email: emailOrMatric }, { matric_number: emailOrMatric }] });
             if (regStudent) {
-                const _b = regStudent._doc, { password } = _b, studentData = __rest(_b, ["password"]);
+                const _b = regStudent._doc, { password, safe_answer } = _b, studentData = __rest(_b, ["password", "safe_answer"]);
                 const validPassword = yield bcrypt_1.default.compare(req.body.password, password);
                 if (!validPassword)
                     return res.status(400).json({
                         "success": false,
                         "error": 'Invalid Email Address or Password'
                     });
-                console.log(studentData._id.toString(), regStudent.email);
                 const token = jsonwebtoken_1.default.sign({ _id: studentData._id.toString(), email: regStudent.email }, secretKey, { expiresIn: '72000000 seconds' });
                 res.cookie('jwt', token);
                 res.status(200).json({
                     "success": true,
+                    "data": studentData,
                     "token": token,
                     "message": "Login Successful",
-                    "student": studentData,
                     "error": null
                 });
             }
@@ -129,7 +128,12 @@ const updateStudentData = (req, res, next) => __awaiter(void 0, void 0, void 0, 
         const { student } = res.locals;
         if (student) {
             const _c = req.body, { _id, id, email, password } = _c, studentData = __rest(_c, ["_id", "id", "email", "password"]);
-            const regStudent = yield student_1.default.findOneAndUpdate({ id: student.id }, studentData);
+            const { safe_answer } = studentData;
+            if (safe_answer) {
+                const hashedSafeAnswer = yield bcrypt_1.default.hash(safe_answer, saltRounds);
+                studentData.safe_answer = hashedSafeAnswer;
+            }
+            const regStudent = yield student_1.default.findOneAndUpdate({ email: student.email }, Object.assign({}, studentData), { new: true });
             if (regStudent) {
                 res.status(200).json({
                     "success": true,
@@ -168,7 +172,7 @@ const verifySafePhrase = (req, res, next) => __awaiter(void 0, void 0, void 0, f
         }
         const regStudent = yield student_1.default.findOne({ email: email });
         if (regStudent) {
-            const _e = regStudent.toObject(), { password } = _e, studentData = __rest(_e, ["password"]);
+            const _e = regStudent.toObject(), { password, safe_answer } = _e, studentData = __rest(_e, ["password", "safe_answer"]);
             const validAnswer = yield bcrypt_1.default.compare(safe_answer, (_d = regStudent.safe_answer) !== null && _d !== void 0 ? _d : '');
             if (!validAnswer || safe_phrase != regStudent.safe_phrase)
                 return res.status(400).json({
@@ -178,8 +182,9 @@ const verifySafePhrase = (req, res, next) => __awaiter(void 0, void 0, void 0, f
             const token = jsonwebtoken_1.default.sign({ _id: regStudent._id.toString(), email: regStudent.email }, secretKey, { expiresIn: '72000000 seconds' });
             return res.status(200).json({
                 "success": true,
-                "data": { studentData, token },
-                "error": null
+                "data": studentData,
+                "token": token,
+                "error": null,
             });
         }
         else {
@@ -245,7 +250,7 @@ const fetchUser = (req, res, next) => __awaiter(void 0, void 0, void 0, function
         if (id) {
             const regStudent = yield student_1.default.findOne({ id: id });
             if (regStudent) {
-                const _f = regStudent._doc, { password } = _f, studentData = __rest(_f, ["password"]);
+                const _f = regStudent._doc, { password, safe_answer } = _f, studentData = __rest(_f, ["password", "safe_answer"]);
                 res.status(200).json({
                     "success": true,
                     "data": studentData,

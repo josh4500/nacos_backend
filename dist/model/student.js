@@ -62,6 +62,14 @@ const StudentSchema = new mongoose_1.default.Schema({
         type: String,
         required: false,
     },
+    safe_phrase: {
+        type: String,
+        required: false,
+    },
+    safe_answer: {
+        type: String,
+        required: false,
+    },
 }, {
     timestamps: true,
 });
