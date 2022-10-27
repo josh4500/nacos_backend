@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import connectDB from './src/config/db';
 import path from 'path';
 import cookieParser from "cookie-parser";
+import authRouter from "./src/routes/auth";
 
 dotenv.config();
 
@@ -50,8 +51,11 @@ app.use(function (
     res.render("error");
 });
 
+app.use("/api/v1", authRouter);
+
+//Frontend na you sabi
 app.get('/', (req: Request, res: Response) => {
-    res.send('Express + TypeScript Server');
+    res.send('Nacos Backend Impl');
 });
 
 app.listen(port, () => {
