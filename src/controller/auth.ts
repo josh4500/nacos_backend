@@ -5,8 +5,10 @@ import NacosMember, { INacosMember } from "../model/nacos_member";
 import { SigninValidationSchema, SignupValidationSchema } from '../helpers/validatation_schema';
 import createHttpError from 'http-errors';
 import Student, { IStudent } from '../model/student';
+import { string } from 'joi';
 
 const saltRounds = parseInt(process.env.SALT_ROUNDS as string);
+export const secretKey: string = "computersciencestudent2017federaluniversitylokoja";
 
 export const signUp = async (req: Request, res: Response, next: NextFunction) => {
     // const { email, matric_number, password } = req.body;

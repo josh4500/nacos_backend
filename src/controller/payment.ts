@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import Payment, { IPayment } from "../model/Payment";
 import Card from '../model/card';
+import Payment from '../model/payment';
 import PaymentRequest from '../model/PaymentRequest';
 import Student, { IStudent } from "../model/student";
 import { secretKey } from './auth';
@@ -17,12 +17,12 @@ import { secretKey } from './auth';
 //     card : carScheme
 // }).meta({ className: 'PaymentRequest' });
 export const cardPayment = async (req: Request, res: Response) => {
-    
-    const error =  validateRequestBody(req)
 
-    if(error.length !=0){
-        res.status(400).send({code : 400,message : "Incomplete request",error : error})
-        return
+    const error = validateRequestBody(req);
+
+    if (error.length != 0) {
+        res.status(400).send({ code: 400, message: "Incomplete request", error: error });
+        return;
     }
 
 
@@ -32,253 +32,253 @@ export const cardPayment = async (req: Request, res: Response) => {
         req.body.card.pan,
         req.body.card.cardHolderName,
         req.body.card.cardExpireDate
-    )
+    );
     let paymentRequest = new PaymentRequest(
         req.body.amount,
         card
-    )    
-    var student : IStudent = new Student()
-    verifyToken(req,res,(token : string)=>{
-        jwt.verify(token,secretKey,(err,data)=>{
-            if(err){
+    );
+    var student: IStudent = new Student();
+    verifyToken(req, res, (token: string) => {
+        jwt.verify(token, secretKey, (err: any, data: any) => {
+            if (err) {
                 res.status(403).send(
                     {
-                        code : 403,
-                        message : "Unknown user"
+                        code: 403,
+                        message: "Unknown user"
                     }
-                )
+                );
                 return;
             }
-            student = data as IStudent
-        })
-    })
-    
-    var isAmountValid = validateAmountAgainstPayment(paymentRequest.amount)
+            student = data as IStudent;
+        });
+    });
 
-    if(!isAmountValid){
+    var isAmountValid = validateAmountAgainstPayment(paymentRequest.amount);
+
+    if (!isAmountValid) {
         res.status(400).send({
-            code : 400,
-            message :"Invalid amount"
-        })
-        return
+            code: 400,
+            message: "Invalid amount"
+        });
+        return;
     }
 
-    makePayment(paymentRequest,student,res);
+    makePayment(paymentRequest, student, res);
 
-}
-export const payments = async (req: Request, res: Response,next: NextFunction) => {
-    var student : IStudent = new Student()
-    verifyToken(req,res,(token : string)=>{
-        jwt.verify(token,secretKey,(err,data)=>{
-            if(err){
+};
+export const payments = async (req: Request, res: Response, next: NextFunction) => {
+    var student: IStudent = new Student();
+    verifyToken(req, res, (token: string) => {
+        jwt.verify(token, secretKey, (err: any, data: any) => {
+            if (err) {
                 res.status(403).send(
                     {
-                        code : 403,
-                        message : "Unknown user"
+                        code: 403,
+                        message: "Unknown user"
                     }
-                )
+                );
                 return;
             }
-            student = data as IStudent
-        })
-    })
-    
-    await Payment.find({matric_number : student.matric_number},(err: any, payments: any)=>{
-        if(err){
+            student = data as IStudent;
+        });
+    });
+
+    await Payment.find({ matric_number: student.matric_number }, (err: any, payments: any) => {
+        if (err) {
             res.status(400).send({
-                code:400,
-                message : "an error occurred",
-                error : err
-            })
-        }else 
+                code: 400,
+                message: "an error occurred",
+                error: err
+            });
+        } else
             res.status(200).send({
-                status : "00",
-                message : "Approved or complete successfully",
-                data : payments
-            });  
-      });
+                status: "00",
+                message: "Approved or complete successfully",
+                data: payments
+            });
+    });
 
-    res.send("Hello")
-}
-export const payment = async (req: Request, res: Response,next: NextFunction) => {
-    var student : IStudent = new Student()
-    verifyToken(req,res,(token : string)=>{
-        jwt.verify(token,secretKey,(err,data)=>{
-            if(err){
+    res.send("Hello");
+};
+export const payment = async (req: Request, res: Response, next: NextFunction) => {
+    var student: IStudent = new Student();
+    verifyToken(req, res, (token: string) => {
+        jwt.verify(token, secretKey, (err: any, data: any) => {
+            if (err) {
                 res.status(403).send(
                     {
-                        code : 403,
-                        message : "Unknown user"
+                        code: 403,
+                        message: "Unknown user"
                     }
-                )
+                );
                 return;
             }
-            student = data as IStudent
-        })
-    })
+            student = data as IStudent;
+        });
+    });
     const { id } = req.params;
-    await Payment.findOne({$and : [{matric_number : student.matric_number},{ _id:id }]},(err: any, payment: any)=>{
-        if(err){
+    await Payment.findOne({ $and: [{ matric_number: student.matric_number }, { _id: id }] }, (err: any, payment: any) => {
+        if (err) {
             res.status(400).send({
-                code:400,
-                message : "an error occurred",
-                error : err
-            })
-        }else 
+                code: 400,
+                message: "an error occurred",
+                error: err
+            });
+        } else
             res.status(200).send({
-                status : "00",
-                message : "Approved or complete successfully",
-                data : payment
-            });  
-      });
-}
-function verifyToken(req: Request,res : Response,next:(token:string)=>void){
+                status: "00",
+                message: "Approved or complete successfully",
+                data: payment
+            });
+    });
+};
+function verifyToken(req: Request, res: Response, next: (token: string) => void) {
     const header = req.headers["authorization"];
-    if(typeof header  !== "undefined" ){
+    if (typeof header !== "undefined") {
         const token = header.split(" ")[1];
-        next(token)
+        next(token);
     }
     else {
         res.status(401).send({
-            code : 403,
-            message :"invalid or no auth token"
-        })
+            code: 403,
+            message: "invalid or no auth token"
+        });
     }
 
 }
-function validateAmountAgainstPayment(amount: Number) : Boolean {
-    var isAmountValid =  true
-    if(amount !== 500){
-        isAmountValid = false
+function validateAmountAgainstPayment(amount: Number): Boolean {
+    var isAmountValid = true;
+    if (amount !== 500) {
+        isAmountValid = false;
     }
     return isAmountValid;
 }
-async function  makePayment(paymentRequest: PaymentRequest, student: IStudent, res: Response<any, Record<string, any>>){
+async function makePayment(paymentRequest: PaymentRequest, student: IStudent, res: Response<any, Record<string, any>>) {
 
     const payment = new Payment({
-        amount : paymentRequest.amount,
-        matric_number : student.matric_number,
-        paymentMethod : "card",
-        createdAt : Date.now(),
-        updatedAt : Date.now()
-    })
-    await payment.save()
+        amount: paymentRequest.amount,
+        matric_number: student.matric_number,
+        paymentMethod: "card",
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+    });
+    await payment.save();
     res.status(200).send({
-        status : "00",
-        message : "approved or complete successfully",
-        data : payment
-    })
+        status: "00",
+        message: "approved or complete successfully",
+        data: payment
+    });
 }
-function validateRequestBody(req : Request) : Array<Object>{
-    var err  =  Array<Object>()
-    
-    const {amount, card} = req.body
-    if(!amount){
+function validateRequestBody(req: Request): Array<Object> {
+    var err = Array<Object>();
+
+    const { amount, card } = req.body;
+    if (!amount) {
         err.push({
-            field : "amount",
-            message : "Amount is required"
-        })
+            field: "amount",
+            message: "Amount is required"
+        });
     }
-    if(!card){
+    if (!card) {
         err.push({
-            field : "card",
-            message : "Card details is required"
-        })
-        return err
+            field: "card",
+            message: "Card details is required"
+        });
+        return err;
     }
-    if(card.cardHolderName === "" ){
+    if (card.cardHolderName === "") {
         err.push({
-            field : "cardHolderName",
-            message :"cardHoldersName is required"
-        
-        })
+            field: "cardHolderName",
+            message: "cardHoldersName is required"
+
+        });
     }
-    if(card.cvv === "" ){
+    if (card.cvv === "") {
         err.push({
-            field : "cvv",
-            message :"cvv is required"
-        
-        })
+            field: "cvv",
+            message: "cvv is required"
+
+        });
     }
-    if(card.cvv.length > 3 || card.cvv.length < 3 ){
+    if (card.cvv.length > 3 || card.cvv.length < 3) {
         err.push({
-            field : "cvv",
-            message :"invalid cvv"
-        
-        })
+            field: "cvv",
+            message: "invalid cvv"
+
+        });
     }
-    if(card.pin === "" || !card.pin){
+    if (card.pin === "" || !card.pin) {
         err.push({
-            field : "pin",
-            message :"pin is required"
-        
-        })
+            field: "pin",
+            message: "pin is required"
+
+        });
     }
-    if(card.pin.length !== 4){
+    if (card.pin.length !== 4) {
         err.push({
-            field : "pin",
-            message :"invalid pin"
-        
-        })
+            field: "pin",
+            message: "invalid pin"
+
+        });
     }
     try {
-        BigInt(card.pan)
+        BigInt(card.pan);
     } catch (error) {
         err.push({
-            field : "pan",
-            message :"invalid pan"
-        
-        })  
-        return err
-    }
-    
-    if(card.pan === "" || !card.pan ){
-        err.push({
-            field : "pan",
-            message :"pan is required"
-        
-        })
-    }
-    if(card.pan.length > 19 || card.pan.length < 16 ){
-        err.push({
-            field : "pan",
-            message :"incorrect pan"
-        
-        })
-    }
-    if(card.cardExpireDate.length > 5 || card.cardExpireDate.length < 5 || !card.cardExpireDate.includes("/") ){
-        err.push({
-            field : "cardExpireDate",
-            message :"invalid expired date format. Use mm/yy e.g 03/24"
-        
-        })
-        return err
-    }
-    if(!card.cardExpireDate || card.cardExpireDate === "" ){
-        err.push({
-            field : "cardExpireDate",
-            message : "cardExpireDate is required"
-        
-        })
+            field: "pan",
+            message: "invalid pan"
 
-        return err
+        });
+        return err;
+    }
+
+    if (card.pan === "" || !card.pan) {
+        err.push({
+            field: "pan",
+            message: "pan is required"
+
+        });
+    }
+    if (card.pan.length > 19 || card.pan.length < 16) {
+        err.push({
+            field: "pan",
+            message: "incorrect pan"
+
+        });
+    }
+    if (card.cardExpireDate.length > 5 || card.cardExpireDate.length < 5 || !card.cardExpireDate.includes("/")) {
+        err.push({
+            field: "cardExpireDate",
+            message: "invalid expired date format. Use mm/yy e.g 03/24"
+
+        });
+        return err;
+    }
+    if (!card.cardExpireDate || card.cardExpireDate === "") {
+        err.push({
+            field: "cardExpireDate",
+            message: "cardExpireDate is required"
+
+        });
+
+        return err;
     }
     const currentYear = Number(new Date().getFullYear().toString().substring(2, 4));
 
-    const currentMonth = new Date().getMonth() + 1
+    const currentMonth = new Date().getMonth() + 1;
 
 
-    var dateSplit = card.cardExpireDate.split("/")
-    var month = parseInt(dateSplit[0])
-    var year = parseInt(dateSplit[1])
-    
-    if(year < currentYear || month > currentMonth ){
+    var dateSplit = card.cardExpireDate.split("/");
+    var month = parseInt(dateSplit[0]);
+    var year = parseInt(dateSplit[1]);
+
+    if (year < currentYear || month > currentMonth) {
         err.push({
-            field : "card",
-            message :"expired card"
-        
-        })
+            field: "card",
+            message: "expired card"
+
+        });
     }
 
-    return err 
+    return err;
 }
