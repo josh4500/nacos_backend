@@ -208,7 +208,7 @@ export const fetchUser = async (req: Request, res: Response, next: NextFunction)
         const { id } = req.params;
 
         if (id) {
-            const regStudent: any = await NacosMember.findOne({ id: id });
+            const regStudent: any = await NacosMember.findById(id);
             if (regStudent) {
                 const { password, safe_answer, ...nacosMemberData } = regStudent._doc;
                 res.status(200).json({

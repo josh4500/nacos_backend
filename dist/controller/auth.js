@@ -226,7 +226,7 @@ const fetchUser = (req, res, next) => __awaiter(void 0, void 0, void 0, function
     try {
         const { id } = req.params;
         if (id) {
-            const regStudent = yield nacos_member_1.default.findOne({ id: id });
+            const regStudent = yield nacos_member_1.default.findById(id);
             if (regStudent) {
                 const _g = regStudent._doc, { password, safe_answer } = _g, nacosMemberData = __rest(_g, ["password", "safe_answer"]);
                 res.status(200).json({
