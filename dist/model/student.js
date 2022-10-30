@@ -31,11 +31,6 @@ const StudentSchema = new mongoose_1.default.Schema({
         trim: true,
         lowercase: true,
     },
-    password: {
-        type: String,
-        trim: true,
-        required: true,
-    },
     matric_number: {
         type: String,
         required: true,
@@ -59,14 +54,6 @@ const StudentSchema = new mongoose_1.default.Schema({
         default: false,
     },
     image_url: {
-        type: String,
-        required: false,
-    },
-    safe_phrase: {
-        type: String,
-        required: false,
-    },
-    safe_answer: {
         type: String,
         required: false,
     },

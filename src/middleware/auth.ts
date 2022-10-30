@@ -1,19 +1,19 @@
 import jwt from 'jsonwebtoken';
-import Student, { IStudent } from '../model/student';
+import NacosMember, { INacosMember } from '../model/nacos_member';
 import { Request, Response, NextFunction } from 'express';
 
-const secretKey: string = 'computersciencestudent(2017)federaluniversitylokoja';
-export async function studentAvailable(req: Request, res: Response, next: NextFunction) {
-    let student: IStudent | null;
+const secretKey: string = 'computersciencenacosMember(2017)federaluniversitylokoja';
+export async function isNacosMemberAvailable(req: Request, res: Response, next: NextFunction) {
+    let nacosMember: INacosMember | null;
     try {
-        student = await Student.findOne({ email: req.body.email });
-        if (!student) {
+        nacosMember = await NacosMember.findOne({ email: req.body.email });
+        if (!nacosMember) {
             return res.status(400).json({
                 success: false,
-                error: 'Student does not exist',
+                error: 'NacosMember does not exist',
             });
         }
-        res.locals.student = student;
+        res.locals.nacosMember = nacosMember;
     } catch (err: any) {
         res.status(500).json({ "success": false, "error": "Something went wrong.\n Try again" });
     }
@@ -26,12 +26,12 @@ export function authenticate(req: Request, res: Response, next: any) {
     const token = (authHeader as string).split(' ')[1];
 
     if (token == null) return res.status(401).json({ "success": false, "message": "Unauthorized access" });
-    jwt.verify(token, secretKey as string, {}, async (err: any, studentData: any) => {
+    jwt.verify(token, secretKey as string, {}, async (err: any, nacosMemberData: any) => {
 
         if (err) return res.status(403).json({ "success": false, "error": "Unauthorized access" });
-        const student = await Student.findOne({ _id: studentData._id });
-        if (!student) return res.status(403).json({ "success": false, "error": "Unauthorized access" });
-        res.locals.student = student;
+        const nacosMember = await NacosMember.findOne({ _id: nacosMemberData._id });
+        if (!nacosMember) return res.status(403).json({ "success": false, "error": "Unauthorized access" });
+        res.locals.nacosMember = nacosMember;
         next();
     });
 };

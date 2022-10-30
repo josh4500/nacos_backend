@@ -12,22 +12,22 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.authenticate = exports.studentAvailable = void 0;
+exports.authenticate = exports.isNacosMemberAvailable = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
-const student_1 = __importDefault(require("../model/student"));
-const secretKey = 'computersciencestudent(2017)federaluniversitylokoja';
-function studentAvailable(req, res, next) {
+const nacos_member_1 = __importDefault(require("../model/nacos_member"));
+const secretKey = 'computersciencenacosMember(2017)federaluniversitylokoja';
+function isNacosMemberAvailable(req, res, next) {
     return __awaiter(this, void 0, void 0, function* () {
-        let student;
+        let nacosMember;
         try {
-            student = yield student_1.default.findOne({ email: req.body.email });
-            if (!student) {
+            nacosMember = yield nacos_member_1.default.findOne({ email: req.body.email });
+            if (!nacosMember) {
                 return res.status(400).json({
                     success: false,
-                    error: 'Student does not exist',
+                    error: 'NacosMember does not exist',
                 });
             }
-            res.locals.student = student;
+            res.locals.nacosMember = nacosMember;
         }
         catch (err) {
             res.status(500).json({ "success": false, "error": "Something went wrong.\n Try again" });
@@ -35,7 +35,7 @@ function studentAvailable(req, res, next) {
         next();
     });
 }
-exports.studentAvailable = studentAvailable;
+exports.isNacosMemberAvailable = isNacosMemberAvailable;
 function authenticate(req, res, next) {
     const authHeader = req.headers.authorization;
     if (authHeader == null)
@@ -43,13 +43,13 @@ function authenticate(req, res, next) {
     const token = authHeader.split(' ')[1];
     if (token == null)
         return res.status(401).json({ "success": false, "message": "Unauthorized access" });
-    jsonwebtoken_1.default.verify(token, secretKey, {}, (err, studentData) => __awaiter(this, void 0, void 0, function* () {
+    jsonwebtoken_1.default.verify(token, secretKey, {}, (err, nacosMemberData) => __awaiter(this, void 0, void 0, function* () {
         if (err)
             return res.status(403).json({ "success": false, "error": "Unauthorized access" });
-        const student = yield student_1.default.findOne({ _id: studentData._id });
-        if (!student)
+        const nacosMember = yield nacos_member_1.default.findOne({ _id: nacosMemberData._id });
+        if (!nacosMember)
             return res.status(403).json({ "success": false, "error": "Unauthorized access" });
-        res.locals.student = student;
+        res.locals.nacosMember = nacosMember;
         next();
     }));
 }

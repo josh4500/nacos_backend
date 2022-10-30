@@ -1,98 +1,87 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
-import Student, { IStudent } from "../model/student";
-const EmailValidator = require('email-deep-validator');
-const emailValidator = new EmailValidator();
+import NacosMember, { INacosMember } from "../model/nacos_member";
+import { SigninValidationSchema, SignupValidationSchema } from '../helpers/validatation_schema';
+import createHttpError from 'http-errors';
+import Student, { IStudent } from '../model/student';
 
-const secretKey: string = 'computersciencestudent(2017)federaluniversitylokoja';
+const secretKey: string = 'computersciencenacosMember(2017)federaluniversitylokoja';
 const saltRounds = parseInt(process.env.SALT_ROUNDS as string);
 
 export const signUp = async (req: Request, res: Response, next: NextFunction) => {
-    const student: IStudent = req.body;
+    // const { email, matric_number, password } = req.body;
+    try {
+        const result = SignupValidationSchema.validate(req.body);
 
-    if (!student.email || !student.password) {
-        return res.status(400).send({
-            success: false,
-            error: "Email and password are required"
-        });
-    }
-    if (!emailValidator.verify(student.email)) {
-        return res.status(400).send({
-            success: false,
-            error: "Email is not valid"
-        });
-    }
-    if (student.password.length < 8) {
-        return res.status(400).send({
-            success: false,
-            error: "Password must be at least 8 characters long"
-        });
-    }
-    if (!student.firstname || !student.lastname) {
-        return res.status(400).send({
-            success: false,
-            error: "Fullname is required"
-        });
-    }
-    const newStudentEmail = await emailValidator.verify(req.body.email);
-    if (newStudentEmail.validDomain === false) {
-        return res.status(400).json({ "success": false, "error": 'Invalid Email Address' });
-    }
-    const existEmail = await Student.findOne({ $or: [{ email: student.email }, { matric_number: student.matric_number }] });
-    if (existEmail) {
-        res.status(400).json({ "success": false, "error": 'Student already exist.' });
-        return;
-    }
-    else {
-        try {
-            const hashedPassword = await bcrypt.hash(student.password, saltRounds);
-            student.password = hashedPassword;
-            const newStudent = new Student(student);
-            const savedStudent: IStudent = await newStudent.save();
-            const { password, safe_answer, ...studentData } = savedStudent.toObject();
-            res.status(201).json({ "success": true, "data": studentData, "error": null });
+        const student: any = await Student.findOne({ matric_number: result.value.matric_number });
+        if (!student) {
+            throw new createHttpError.Conflict(`Student with ${result.value.matric_number} does not exist.`);
         }
-        catch (err) {
-            res.status(500).json({ "success": false, "message": err });
+
+        const existEmail = await NacosMember.findOne({ $or: [{ email: result.value.email }, { matric_number: result.value.matric_number }] });
+        if (existEmail) {
+            throw new createHttpError.Conflict(`${result.value.matric_number} already exist.`);
         }
+
+        // const hash = jwt.sign(result.value, secretKey, { expiresIn: '72000000 seconds' });
+        //Send to mail
+
+        const hashedPassword = await bcrypt.hash(result.value.password, saltRounds);
+        const { _id, ...studentData } = student._doc;
+
+        const newNacosMember = new NacosMember({ ...studentData, "password": hashedPassword });
+        await newNacosMember.save();
+
+        const { password, safe_answer, ...nacosMemberData } = newNacosMember.toObject();
+        res.status(201).json({ "success": true, "data": nacosMemberData, "error": null });
+
+    } catch (error) {
+        return res.status(400).send({
+            success: false,
+            error
+        });
     }
 };
 
+// export const verifySignup = async (req: Request, res: Response, next: NextFunction) => {
+//     try {
+
+//     } catch (error) {
+
+//     }
+// };
+
 export const signIn = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { emailOrMatric, password } = req.body;
+        const result = SigninValidationSchema.validate(req.body);
 
-        if (emailOrMatric && password) {
-            const regStudent: any = await Student.findOne({ $or: [{ email: emailOrMatric }, { matric_number: emailOrMatric }] });
+        const { matric_number, password } = req.body;
+
+        if (matric_number && password) {
+            const regStudent: any = await NacosMember.findOne({ "matric_number": result.value.matric_number });
             if (regStudent) {
-                const { password, safe_answer, ...studentData } = regStudent._doc;
-                const validPassword = await bcrypt.compare(req.body.password, password);
+                const { password, safe_answer, ...nacosMemberData } = regStudent._doc;
+                const validPassword = await bcrypt.compare(result.value.password, regStudent.password);
                 if (!validPassword) return res.status(400).json({
                     "success": false,
                     "error": 'Invalid Email Address or Password'
                 });
-                const token = jwt.sign({ _id: studentData._id.toString(), email: regStudent.email }, secretKey, { expiresIn: '72000000 seconds' });
+                const token = jwt.sign({ _id: nacosMemberData._id.toString(), email: regStudent.email }, secretKey, { expiresIn: '72000000 seconds' });
                 res.cookie('jwt', token);
-                res.status(200).json({
+                return res.status(200).json({
                     "success": true,
-                    "data": studentData,
+                    "data": nacosMemberData,
                     "token": token,
                     "message": "Login Successful",
                     "error": null
                 });
-            } else {
-                res.status(400).json({
-                    "success": false,
-                    "error": 'Invalid Email Address or Password\n'
-                });
             }
-        } else {
-            res.status(400).json({
-                "success": false,
-                "error": 'Invalid Email Address or Password\n'
-            });
         }
+        return res.status(400).json({
+            "success": false,
+            "error": 'Invalid Email Address or Password\n'
+        });
 
     } catch (err) {
         res.status(500).json({ "success": false, "error": err });
@@ -101,31 +90,31 @@ export const signIn = async (req: Request, res: Response, next: NextFunction) =>
 
 export const updateStudentData = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { student } = res.locals;
-        if (student) {
-            const { _id, id, email, password, ...studentData } = req.body;
-            const { safe_answer } = studentData;
+        const { nacosMember } = res.locals;
+        if (nacosMember) {
+            const { _id, id, email, password, firstname, lastname, middlename, matric_number, ...nacosMemberData } = req.body;
+            const { safe_answer } = nacosMemberData;
             if (safe_answer) {
                 const hashedSafeAnswer = await bcrypt.hash(safe_answer, saltRounds);
-                studentData.safe_answer = hashedSafeAnswer;
+                nacosMemberData.safe_answer = hashedSafeAnswer;
             }
-            const regStudent = await Student.findOneAndUpdate({ email: student.email }, { ...studentData }, { new: true });
+            const regStudent = await NacosMember.findOneAndUpdate({ email: nacosMember.email }, { ...nacosMemberData }, { new: true });
             if (regStudent) {
                 res.status(200).json({
                     "success": true,
-                    "message": "Student data updated Successful",
+                    "message": "Member data updated Successful",
                     "error": null
                 });
             } else {
                 res.status(400).json({
                     "success": false,
-                    "error": 'Student does not exist'
+                    "error": 'Member does not exist'
                 });
             }
         } else {
             res.status(400).json({
                 "success": false,
-                "error": 'Student does not exist'
+                "error": 'Member does not exist'
             });
         }
 
@@ -143,9 +132,9 @@ export const verifySafePhrase = async (req: Request, res: Response, next: NextFu
                 "error": 'Invalid argument'
             });
         }
-        const regStudent = await Student.findOne({ email: email });
+        const regStudent = await NacosMember.findOne({ email: email });
         if (regStudent) {
-            const { password, safe_answer, ...studentData } = regStudent.toObject();
+            const { password, safe_answer, ...nacosMemberData } = regStudent.toObject();
             const validAnswer = await bcrypt.compare(safe_answer, regStudent.safe_answer ?? '');
             if (!validAnswer || safe_phrase != regStudent.safe_phrase) return res.status(400).json({
                 "success": false,
@@ -154,7 +143,7 @@ export const verifySafePhrase = async (req: Request, res: Response, next: NextFu
             const token = jwt.sign({ _id: regStudent._id.toString(), email: regStudent.email }, secretKey, { expiresIn: '72000000 seconds' });
             return res.status(200).json({
                 "success": true,
-                "data": studentData,
+                "data": nacosMemberData,
                 "token": token,
                 "error": null,
 
@@ -162,7 +151,7 @@ export const verifySafePhrase = async (req: Request, res: Response, next: NextFu
         } else {
             res.status(400).json({
                 "success": false,
-                "error": 'Student does not exist'
+                "error": 'Member does not exist'
             });
         }
 
@@ -173,7 +162,7 @@ export const verifySafePhrase = async (req: Request, res: Response, next: NextFu
 
 export const updatePassword = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { student } = res.locals;
+        const { nacosMember } = res.locals;
         const { password, confirm_password } = req.body;
         if (password != confirm_password) {
             return res.status(400).json({
@@ -187,25 +176,25 @@ export const updatePassword = async (req: Request, res: Response, next: NextFunc
                 "error": 'Password should be 8 or more characters.'
             });
         }
-        if (student) {
+        if (nacosMember) {
             const hashedPassword = await bcrypt.hash(password, saltRounds);
-            const regStudent = await Student.findOneAndUpdate({ id: student.email }, { password: hashedPassword });
+            const regStudent = await NacosMember.findOneAndUpdate({ id: nacosMember.email }, { password: hashedPassword });
             if (regStudent) {
                 res.status(200).json({
                     "success": true,
-                    "message": "Student password successful.",
+                    "message": "Member password successful.",
                     "error": null
                 });
             } else {
                 res.status(400).json({
                     "success": false,
-                    "error": 'Student does not exist.'
+                    "error": 'Member does not exist.'
                 });
             }
         } else {
             res.status(400).json({
                 "success": false,
-                "error": 'Student does not exist.'
+                "error": 'Member does not exist.'
             });
         }
 
@@ -219,24 +208,24 @@ export const fetchUser = async (req: Request, res: Response, next: NextFunction)
         const { id } = req.params;
 
         if (id) {
-            const regStudent: any = await Student.findOne({ id: id });
+            const regStudent: any = await NacosMember.findOne({ id: id });
             if (regStudent) {
-                const { password, safe_answer, ...studentData } = regStudent._doc;
+                const { password, safe_answer, ...nacosMemberData } = regStudent._doc;
                 res.status(200).json({
                     "success": true,
-                    "data": studentData,
+                    "data": nacosMemberData,
                     "error": null
                 });
             } else {
                 res.status(400).json({
                     "success": false,
-                    "error": 'Student does not exist.'
+                    "error": 'Member does not exist.'
                 });
             }
         } else {
             res.status(400).json({
                 "success": false,
-                "error": 'Student does not exist.'
+                "error": 'Member does not exist.'
             });
         }
 

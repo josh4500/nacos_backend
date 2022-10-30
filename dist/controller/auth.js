@@ -26,97 +26,75 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.fetchUser = exports.updatePassword = exports.verifySafePhrase = exports.updateStudentData = exports.signIn = exports.signUp = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const bcrypt_1 = __importDefault(require("bcrypt"));
+const nacos_member_1 = __importDefault(require("../model/nacos_member"));
+const validatation_schema_1 = require("../helpers/validatation_schema");
+const http_errors_1 = __importDefault(require("http-errors"));
 const student_1 = __importDefault(require("../model/student"));
-const EmailValidator = require('email-deep-validator');
-const emailValidator = new EmailValidator();
-const secretKey = 'computersciencestudent(2017)federaluniversitylokoja';
+const secretKey = 'computersciencenacosMember(2017)federaluniversitylokoja';
 const saltRounds = parseInt(process.env.SALT_ROUNDS);
 const signUp = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    const student = req.body;
-    if (!student.email || !student.password) {
-        return res.status(400).send({
-            success: false,
-            error: "Email and password are required"
-        });
-    }
-    if (!emailValidator.verify(student.email)) {
-        return res.status(400).send({
-            success: false,
-            error: "Email is not valid"
-        });
-    }
-    if (student.password.length < 8) {
-        return res.status(400).send({
-            success: false,
-            error: "Password must be at least 8 characters long"
-        });
-    }
-    if (!student.firstname || !student.lastname) {
-        return res.status(400).send({
-            success: false,
-            error: "Fullname is required"
-        });
-    }
-    const newStudentEmail = yield emailValidator.verify(req.body.email);
-    if (newStudentEmail.validDomain === false) {
-        return res.status(400).json({ "success": false, "error": 'Invalid Email Address' });
-    }
-    const existEmail = yield student_1.default.findOne({ $or: [{ email: student.email }, { matric_number: student.matric_number }] });
-    if (existEmail) {
-        res.status(400).json({ "success": false, "error": 'Student already exist.' });
-        return;
-    }
-    else {
-        try {
-            const hashedPassword = yield bcrypt_1.default.hash(student.password, saltRounds);
-            student.password = hashedPassword;
-            const newStudent = new student_1.default(student);
-            const savedStudent = yield newStudent.save();
-            const _a = savedStudent.toObject(), { password, safe_answer } = _a, studentData = __rest(_a, ["password", "safe_answer"]);
-            res.status(201).json({ "success": true, "data": studentData, "error": null });
+    // const { email, matric_number, password } = req.body;
+    try {
+        const result = validatation_schema_1.SignupValidationSchema.validate(req.body);
+        const student = yield student_1.default.findOne({ matric_number: result.value.matric_number });
+        if (!student) {
+            throw new http_errors_1.default.Conflict(`Student with ${result.value.matric_number} does not exist.`);
         }
-        catch (err) {
-            res.status(500).json({ "success": false, "message": err });
+        const existEmail = yield nacos_member_1.default.findOne({ $or: [{ email: result.value.email }, { matric_number: result.value.matric_number }] });
+        if (existEmail) {
+            throw new http_errors_1.default.Conflict(`${result.value.matric_number} already exist.`);
         }
+        // const hash = jwt.sign(result.value, secretKey, { expiresIn: '72000000 seconds' });
+        //Send to mail
+        const hashedPassword = yield bcrypt_1.default.hash(result.value.password, saltRounds);
+        const _a = student._doc, { _id } = _a, studentData = __rest(_a, ["_id"]);
+        const newNacosMember = new nacos_member_1.default(Object.assign(Object.assign({}, studentData), { "password": hashedPassword }));
+        yield newNacosMember.save();
+        const _b = newNacosMember.toObject(), { password, safe_answer } = _b, nacosMemberData = __rest(_b, ["password", "safe_answer"]);
+        res.status(201).json({ "success": true, "data": nacosMemberData, "error": null });
+    }
+    catch (error) {
+        return res.status(400).send({
+            success: false,
+            error
+        });
     }
 });
 exports.signUp = signUp;
+// export const verifySignup = async (req: Request, res: Response, next: NextFunction) => {
+//     try {
+//     } catch (error) {
+//     }
+// };
 const signIn = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { emailOrMatric, password } = req.body;
-        if (emailOrMatric && password) {
-            const regStudent = yield student_1.default.findOne({ $or: [{ email: emailOrMatric }, { matric_number: emailOrMatric }] });
+        const result = validatation_schema_1.SigninValidationSchema.validate(req.body);
+        const { matric_number, password } = req.body;
+        if (matric_number && password) {
+            const regStudent = yield nacos_member_1.default.findOne({ "matric_number": result.value.matric_number });
             if (regStudent) {
-                const _b = regStudent._doc, { password, safe_answer } = _b, studentData = __rest(_b, ["password", "safe_answer"]);
-                const validPassword = yield bcrypt_1.default.compare(req.body.password, password);
+                const _c = regStudent._doc, { password, safe_answer } = _c, nacosMemberData = __rest(_c, ["password", "safe_answer"]);
+                const validPassword = yield bcrypt_1.default.compare(result.value.password, regStudent.password);
                 if (!validPassword)
                     return res.status(400).json({
                         "success": false,
                         "error": 'Invalid Email Address or Password'
                     });
-                const token = jsonwebtoken_1.default.sign({ _id: studentData._id.toString(), email: regStudent.email }, secretKey, { expiresIn: '72000000 seconds' });
+                const token = jsonwebtoken_1.default.sign({ _id: nacosMemberData._id.toString(), email: regStudent.email }, secretKey, { expiresIn: '72000000 seconds' });
                 res.cookie('jwt', token);
-                res.status(200).json({
+                return res.status(200).json({
                     "success": true,
-                    "data": studentData,
+                    "data": nacosMemberData,
                     "token": token,
                     "message": "Login Successful",
                     "error": null
                 });
             }
-            else {
-                res.status(400).json({
-                    "success": false,
-                    "error": 'Invalid Email Address or Password\n'
-                });
-            }
         }
-        else {
-            res.status(400).json({
-                "success": false,
-                "error": 'Invalid Email Address or Password\n'
-            });
-        }
+        return res.status(400).json({
+            "success": false,
+            "error": 'Invalid Email Address or Password\n'
+        });
     }
     catch (err) {
         res.status(500).json({ "success": false, "error": err });
@@ -125,33 +103,33 @@ const signIn = (req, res, next) => __awaiter(void 0, void 0, void 0, function* (
 exports.signIn = signIn;
 const updateStudentData = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { student } = res.locals;
-        if (student) {
-            const _c = req.body, { _id, id, email, password } = _c, studentData = __rest(_c, ["_id", "id", "email", "password"]);
-            const { safe_answer } = studentData;
+        const { nacosMember } = res.locals;
+        if (nacosMember) {
+            const _d = req.body, { _id, id, email, password, firstname, lastname, middlename, matric_number } = _d, nacosMemberData = __rest(_d, ["_id", "id", "email", "password", "firstname", "lastname", "middlename", "matric_number"]);
+            const { safe_answer } = nacosMemberData;
             if (safe_answer) {
                 const hashedSafeAnswer = yield bcrypt_1.default.hash(safe_answer, saltRounds);
-                studentData.safe_answer = hashedSafeAnswer;
+                nacosMemberData.safe_answer = hashedSafeAnswer;
             }
-            const regStudent = yield student_1.default.findOneAndUpdate({ email: student.email }, Object.assign({}, studentData), { new: true });
+            const regStudent = yield nacos_member_1.default.findOneAndUpdate({ email: nacosMember.email }, Object.assign({}, nacosMemberData), { new: true });
             if (regStudent) {
                 res.status(200).json({
                     "success": true,
-                    "message": "Student data updated Successful",
+                    "message": "Member data updated Successful",
                     "error": null
                 });
             }
             else {
                 res.status(400).json({
                     "success": false,
-                    "error": 'Student does not exist'
+                    "error": 'Member does not exist'
                 });
             }
         }
         else {
             res.status(400).json({
                 "success": false,
-                "error": 'Student does not exist'
+                "error": 'Member does not exist'
             });
         }
     }
@@ -161,7 +139,7 @@ const updateStudentData = (req, res, next) => __awaiter(void 0, void 0, void 0, 
 });
 exports.updateStudentData = updateStudentData;
 const verifySafePhrase = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    var _d;
+    var _e;
     try {
         const { email, safe_phrase, safe_answer } = req.body;
         if (!email || !safe_phrase || !safe_answer) {
@@ -170,10 +148,10 @@ const verifySafePhrase = (req, res, next) => __awaiter(void 0, void 0, void 0, f
                 "error": 'Invalid argument'
             });
         }
-        const regStudent = yield student_1.default.findOne({ email: email });
+        const regStudent = yield nacos_member_1.default.findOne({ email: email });
         if (regStudent) {
-            const _e = regStudent.toObject(), { password, safe_answer } = _e, studentData = __rest(_e, ["password", "safe_answer"]);
-            const validAnswer = yield bcrypt_1.default.compare(safe_answer, (_d = regStudent.safe_answer) !== null && _d !== void 0 ? _d : '');
+            const _f = regStudent.toObject(), { password, safe_answer } = _f, nacosMemberData = __rest(_f, ["password", "safe_answer"]);
+            const validAnswer = yield bcrypt_1.default.compare(safe_answer, (_e = regStudent.safe_answer) !== null && _e !== void 0 ? _e : '');
             if (!validAnswer || safe_phrase != regStudent.safe_phrase)
                 return res.status(400).json({
                     "success": false,
@@ -182,7 +160,7 @@ const verifySafePhrase = (req, res, next) => __awaiter(void 0, void 0, void 0, f
             const token = jsonwebtoken_1.default.sign({ _id: regStudent._id.toString(), email: regStudent.email }, secretKey, { expiresIn: '72000000 seconds' });
             return res.status(200).json({
                 "success": true,
-                "data": studentData,
+                "data": nacosMemberData,
                 "token": token,
                 "error": null,
             });
@@ -190,7 +168,7 @@ const verifySafePhrase = (req, res, next) => __awaiter(void 0, void 0, void 0, f
         else {
             res.status(400).json({
                 "success": false,
-                "error": 'Student does not exist'
+                "error": 'Member does not exist'
             });
         }
     }
@@ -201,7 +179,7 @@ const verifySafePhrase = (req, res, next) => __awaiter(void 0, void 0, void 0, f
 exports.verifySafePhrase = verifySafePhrase;
 const updatePassword = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { student } = res.locals;
+        const { nacosMember } = res.locals;
         const { password, confirm_password } = req.body;
         if (password != confirm_password) {
             return res.status(400).json({
@@ -215,27 +193,27 @@ const updatePassword = (req, res, next) => __awaiter(void 0, void 0, void 0, fun
                 "error": 'Password should be 8 or more characters.'
             });
         }
-        if (student) {
+        if (nacosMember) {
             const hashedPassword = yield bcrypt_1.default.hash(password, saltRounds);
-            const regStudent = yield student_1.default.findOneAndUpdate({ id: student.email }, { password: hashedPassword });
+            const regStudent = yield nacos_member_1.default.findOneAndUpdate({ id: nacosMember.email }, { password: hashedPassword });
             if (regStudent) {
                 res.status(200).json({
                     "success": true,
-                    "message": "Student password successful.",
+                    "message": "Member password successful.",
                     "error": null
                 });
             }
             else {
                 res.status(400).json({
                     "success": false,
-                    "error": 'Student does not exist.'
+                    "error": 'Member does not exist.'
                 });
             }
         }
         else {
             res.status(400).json({
                 "success": false,
-                "error": 'Student does not exist.'
+                "error": 'Member does not exist.'
             });
         }
     }
@@ -248,26 +226,26 @@ const fetchUser = (req, res, next) => __awaiter(void 0, void 0, void 0, function
     try {
         const { id } = req.params;
         if (id) {
-            const regStudent = yield student_1.default.findOne({ id: id });
+            const regStudent = yield nacos_member_1.default.findOne({ id: id });
             if (regStudent) {
-                const _f = regStudent._doc, { password, safe_answer } = _f, studentData = __rest(_f, ["password", "safe_answer"]);
+                const _g = regStudent._doc, { password, safe_answer } = _g, nacosMemberData = __rest(_g, ["password", "safe_answer"]);
                 res.status(200).json({
                     "success": true,
-                    "data": studentData,
+                    "data": nacosMemberData,
                     "error": null
                 });
             }
             else {
                 res.status(400).json({
                     "success": false,
-                    "error": 'Student does not exist.'
+                    "error": 'Member does not exist.'
                 });
             }
         }
         else {
             res.status(400).json({
                 "success": false,
-                "error": 'Student does not exist.'
+                "error": 'Member does not exist.'
             });
         }
     }
