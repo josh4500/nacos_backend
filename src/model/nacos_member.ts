@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 
-export interface IStudent extends mongoose.Document {
+export interface INacosMember extends mongoose.Document {
     id: mongoose.Types.ObjectId;
     _id: mongoose.Types.ObjectId;
     firstname: string;
@@ -9,17 +9,20 @@ export interface IStudent extends mongoose.Document {
     lastname: string;
     email: string;
     phone?: string;
+    password: string;
     matric_number: string;
     department: string;
     year: string;
     is_alumni: boolean;
     image_url?: string;
+    safe_phrase?: string;
+    safe_answer?: string;
     createdAt?: Date;
     updatedAt?: Date;
 }
 
 
-const StudentSchema = new mongoose.Schema<IStudent>(
+const NacosMemberSchema = new mongoose.Schema<INacosMember>(
     {
         firstname: {
             type: String,
@@ -47,6 +50,11 @@ const StudentSchema = new mongoose.Schema<IStudent>(
             trim: true,
             lowercase: true,
         },
+        password: {
+            type: String,
+            trim: true,
+            required: true,
+        },
         matric_number: {
             type: String,
             required: true,
@@ -73,6 +81,14 @@ const StudentSchema = new mongoose.Schema<IStudent>(
             type: String,
             required: false,
         },
+        safe_phrase: {
+            type: String,
+            required: false,
+        },
+        safe_answer: {
+            type: String,
+            required: false,
+        },
 
     },
     {
@@ -80,5 +96,5 @@ const StudentSchema = new mongoose.Schema<IStudent>(
     },
 );
 
-const Student = mongoose.model('Student', StudentSchema);
-export default Student;
+const NacosMember = mongoose.model('NacosMember', NacosMemberSchema);
+export default NacosMember;

@@ -1,0 +1,18 @@
+{
+  "hosting": {
+    "public": "public",
+    "scripts": {
+      "build": "spack && npm run static && npm run prerender",
+      "static": "cp static/* dist",
+      "prerender": "ts-node prerender.ts"
+    },
+    "directories": {
+      "serve": "dist"
+    },
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ]
+  }
+}

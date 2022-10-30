@@ -5,14 +5,16 @@
   "main": "index.js",
   "scripts": {
     "build": "npx tsc",
-    "start": "node dist/src/index.js",
-    "dev": "concurrently \"npx tsc --watch\" \"nodemon -q dist/src/index.js\""
+    "start": "node dist/index.js",
+    "dev": "concurrently \"npx tsc --watch\" \"nodemon -q dist/index.js\""
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@sendgrid/mail": "^7.7.0",
     "@types/bcrypt": "^5.0.0",
+    "@types/joi": "^17.2.3",
     "@types/jsonwebtoken": "^8.5.9",
     "bcrypt": "^5.1.0",
     "cookie-parser": "^1.4.6",
@@ -21,6 +23,7 @@
     "email-deep-validator": "^3.3.0",
     "express": "^4.18.2",
     "http-errors": "^2.0.0",
+    "joi": "^17.6.4",
     "jsonwebtoken": "^8.5.1",
     "logger": "^0.0.1",
     "mongoose": "^6.7.0"
