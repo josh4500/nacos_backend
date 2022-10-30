@@ -23,14 +23,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.fetchUser = exports.updatePassword = exports.verifySafePhrase = exports.updateStudentData = exports.signIn = exports.signUp = void 0;
+exports.fetchUser = exports.updatePassword = exports.verifySafePhrase = exports.updateStudentData = exports.signIn = exports.signUp = exports.secretKey = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const nacos_member_1 = __importDefault(require("../model/nacos_member"));
 const validatation_schema_1 = require("../helpers/validatation_schema");
 const http_errors_1 = __importDefault(require("http-errors"));
 const student_1 = __importDefault(require("../model/student"));
-const secretKey = 'computersciencenacosMember(2017)federaluniversitylokoja';
 const saltRounds = parseInt(process.env.SALT_ROUNDS);
 const signUp = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     // const { email, matric_number, password } = req.body;
@@ -80,7 +79,6 @@ const signIn = (req, res, next) => __awaiter(void 0, void 0, void 0, function* (
                         "success": false,
                         "error": 'Invalid Email Address or Password'
                     });
-                const token = jsonwebtoken_1.default.sign({ _id: nacosMemberData._id.toString(), email: regStudent.email }, secretKey, { expiresIn: '72000000 seconds' });
                 res.cookie('jwt', token);
                 return res.status(200).json({
                     "success": true,
@@ -157,7 +155,7 @@ const verifySafePhrase = (req, res, next) => __awaiter(void 0, void 0, void 0, f
                     "success": false,
                     "error": 'Incorrect answer. Try again.'
                 });
-            const token = jsonwebtoken_1.default.sign({ _id: regStudent._id.toString(), email: regStudent.email }, secretKey, { expiresIn: '72000000 seconds' });
+            const token = jsonwebtoken_1.default.sign({ _id: regStudent._id.toString(), email: regStudent.email }, exports.secretKey, { expiresIn: '72000000 seconds' });
             return res.status(200).json({
                 "success": true,
                 "data": nacosMemberData,

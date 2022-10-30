@@ -16,4 +16,7 @@ router.put('/student/update', [auth_2.authenticate], auth_1.updateStudentData);
 router.post('/student/verifySafePhrase', auth_1.verifySafePhrase);
 //Change password
 router.post('/student/changePassword', [auth_2.authenticate], auth_1.updatePassword);
+// router.get('/student/payments',(req,res)=>{
+//     res.send("Hellooooo")
+// });
 exports.default = router;

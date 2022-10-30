@@ -5,11 +5,12 @@ import connectDB from './config/db';
 import path from 'path';
 import cookieParser from "cookie-parser";
 import authRouter from "./routes/auth";
+import paymentRouter from "./routes/payment";
 
 dotenv.config();
 
 const app: Express = express();
-const port = process.env.PORT;
+const port = process.env.PORT || 3000;
 
 app.use((_, res, next) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
@@ -33,6 +34,7 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
 app.use(authRouter);
+app.use('/student/payment',paymentRouter);
 
 // app.use(function (req, res, next) {
 //     console.log(req.url);
@@ -56,7 +58,9 @@ app.use(authRouter);
 app.get('/', (req: Request, res: Response) => {
     res.send('Nacos Backend Impl');
 });
-
+app.get('/name/payments',(req,res)=>{
+    res.send("Hellooooo")
+});
 app.listen(port, () => {
     console.log(`⚡️[server]: Server is running at https://localhost:${port}`);
 });

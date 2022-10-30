@@ -6,7 +6,6 @@ import { SigninValidationSchema, SignupValidationSchema } from '../helpers/valid
 import createHttpError from 'http-errors';
 import Student, { IStudent } from '../model/student';
 
-const secretKey: string = 'computersciencenacosMember(2017)federaluniversitylokoja';
 const saltRounds = parseInt(process.env.SALT_ROUNDS as string);
 
 export const signUp = async (req: Request, res: Response, next: NextFunction) => {
