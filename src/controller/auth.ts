@@ -125,8 +125,8 @@ export const updateStudentData = async (req: Request, res: Response, next: NextF
 
 export const verifySafePhrase = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { email, safe_phrase, safe_answer } = req.body;
-        if (!email || !safe_phrase || !safe_answer) {
+        const { email, phrase, answer } = req.body;
+        if (!email || !phrase || !answer) {
             return res.status(400).json({
                 "success": false,
                 "error": 'Invalid argument'
@@ -135,8 +135,8 @@ export const verifySafePhrase = async (req: Request, res: Response, next: NextFu
         const regStudent = await NacosMember.findOne({ email: email });
         if (regStudent) {
             const { password, safe_answer, ...nacosMemberData } = regStudent.toObject();
-            const validAnswer = await bcrypt.compare(safe_answer, regStudent.safe_answer ?? '');
-            if (!validAnswer || safe_phrase != regStudent.safe_phrase) return res.status(400).json({
+            const validAnswer = await bcrypt.compare(answer, regStudent.safe_answer ?? '');
+            if (!validAnswer || phrase != regStudent.safe_phrase) return res.status(400).json({
                 "success": false,
                 "error": 'Incorrect answer. Try again.'
             });

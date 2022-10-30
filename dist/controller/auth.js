@@ -141,8 +141,8 @@ exports.updateStudentData = updateStudentData;
 const verifySafePhrase = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     var _e;
     try {
-        const { email, safe_phrase, safe_answer } = req.body;
-        if (!email || !safe_phrase || !safe_answer) {
+        const { email, phrase, answer } = req.body;
+        if (!email || !phrase || !answer) {
             return res.status(400).json({
                 "success": false,
                 "error": 'Invalid argument'
@@ -151,8 +151,8 @@ const verifySafePhrase = (req, res, next) => __awaiter(void 0, void 0, void 0, f
         const regStudent = yield nacos_member_1.default.findOne({ email: email });
         if (regStudent) {
             const _f = regStudent.toObject(), { password, safe_answer } = _f, nacosMemberData = __rest(_f, ["password", "safe_answer"]);
-            const validAnswer = yield bcrypt_1.default.compare(safe_answer, (_e = regStudent.safe_answer) !== null && _e !== void 0 ? _e : '');
-            if (!validAnswer || safe_phrase != regStudent.safe_phrase)
+            const validAnswer = yield bcrypt_1.default.compare(answer, (_e = regStudent.safe_answer) !== null && _e !== void 0 ? _e : '');
+            if (!validAnswer || phrase != regStudent.safe_phrase)
                 return res.status(400).json({
                     "success": false,
                     "error": 'Incorrect answer. Try again.'
