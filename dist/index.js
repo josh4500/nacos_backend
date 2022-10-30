@@ -8,9 +8,10 @@ const dotenv_1 = __importDefault(require("dotenv"));
 const db_1 = __importDefault(require("./config/db"));
 const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const auth_1 = __importDefault(require("./routes/auth"));
+const payment_1 = __importDefault(require("./routes/payment"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
-const port = process.env.PORT;
+const port = process.env.PORT || 3000;
 app.use((_, res, next) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE");
@@ -26,6 +27,7 @@ app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: false }));
 app.use((0, cookie_parser_1.default)());
 app.use(auth_1.default);
+app.use('/student/payment', payment_1.default);
 // app.use(function (req, res, next) {
 //     console.log(req.url);
 //     next(createError(404));
@@ -44,6 +46,9 @@ app.use(auth_1.default);
 //Frontend na you sabi
 app.get('/', (req, res) => {
     res.send('Nacos Backend Impl');
+});
+app.get('/name/payments', (req, res) => {
+    res.send("Hellooooo");
 });
 app.listen(port, () => {
     console.log(`⚡️[server]: Server is running at https://localhost:${port}`);

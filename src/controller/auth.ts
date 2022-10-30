@@ -5,7 +5,7 @@ import Student, { IStudent } from "../model/student";
 const EmailValidator = require('email-deep-validator');
 const emailValidator = new EmailValidator();
 
-const secretKey: string = 'computersciencestudent(2017)federaluniversitylokoja';
+export const secretKey: string = 'computersciencestudent(2017)federaluniversitylokoja';
 const saltRounds = parseInt(process.env.SALT_ROUNDS as string);
 
 export const signUp = async (req: Request, res: Response, next: NextFunction) => {

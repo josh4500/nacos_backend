@@ -1,6 +1,9 @@
 import { Router } from 'express';
 import { signUp, signIn, updateStudentData, verifySafePhrase, updatePassword, fetchUser } from "../controller/auth";
 import { authenticate } from "../middleware/auth";
+
+
+
 const router = Router();
 
 //Signup
@@ -15,7 +18,7 @@ router.put('/student/update', [authenticate], updateStudentData);
 router.post('/student/verifySafePhrase', verifySafePhrase);
 //Change password
 router.post('/student/changePassword', [authenticate], updatePassword);
-
-
-
+// router.get('/student/payments',(req,res)=>{
+//     res.send("Hellooooo")
+// });
 export default router;

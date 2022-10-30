@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import Payment, { IPayment } from "../model/Payment";
-import Joi from "joi"
 import Card from '../model/card';
 import PaymentRequest from '../model/PaymentRequest';
 import Student, { IStudent } from "../model/student";
@@ -17,7 +16,7 @@ import { secretKey } from './auth';
 //     amount : Joi.number().required(),
 //     card : carScheme
 // }).meta({ className: 'PaymentRequest' });
-export const cardPayment = async (req: Request, res: Response, next: NextFunction) => {
+export const cardPayment = async (req: Request, res: Response) => {
     
     const error =  validateRequestBody(req)
 
@@ -66,6 +65,72 @@ export const cardPayment = async (req: Request, res: Response, next: NextFunctio
 
     makePayment(paymentRequest,student,res);
 
+}
+export const payments = async (req: Request, res: Response,next: NextFunction) => {
+    var student : IStudent = new Student()
+    verifyToken(req,res,(token : string)=>{
+        jwt.verify(token,secretKey,(err,data)=>{
+            if(err){
+                res.status(403).send(
+                    {
+                        code : 403,
+                        message : "Unknown user"
+                    }
+                )
+                return;
+            }
+            student = data as IStudent
+        })
+    })
+    
+    await Payment.find({matric_number : student.matric_number},(err: any, payments: any)=>{
+        if(err){
+            res.status(400).send({
+                code:400,
+                message : "an error occurred",
+                error : err
+            })
+        }else 
+            res.status(200).send({
+                status : "00",
+                message : "Approved or complete successfully",
+                data : payments
+            });  
+      });
+
+    res.send("Hello")
+}
+export const payment = async (req: Request, res: Response,next: NextFunction) => {
+    var student : IStudent = new Student()
+    verifyToken(req,res,(token : string)=>{
+        jwt.verify(token,secretKey,(err,data)=>{
+            if(err){
+                res.status(403).send(
+                    {
+                        code : 403,
+                        message : "Unknown user"
+                    }
+                )
+                return;
+            }
+            student = data as IStudent
+        })
+    })
+    const { id } = req.params;
+    await Payment.findOne({$and : [{matric_number : student.matric_number},{ _id:id }]},(err: any, payment: any)=>{
+        if(err){
+            res.status(400).send({
+                code:400,
+                message : "an error occurred",
+                error : err
+            })
+        }else 
+            res.status(200).send({
+                status : "00",
+                message : "Approved or complete successfully",
+                data : payment
+            });  
+      });
 }
 function verifyToken(req: Request,res : Response,next:(token:string)=>void){
     const header = req.headers["authorization"];
